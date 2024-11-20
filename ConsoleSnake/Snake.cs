@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ConsoleSnake
-{   
+{           
     public class Snake()
     {
         #region Variables
@@ -19,9 +20,13 @@ namespace ConsoleSnake
         public int[,] mapGrid;
 
         public Vector2D[] snakePositions;
+        public Vector2D[] prevSnakePositions;
 
         public Vector2D pointPosition;
         public const int pointWallDistanceMin = 2;
+
+        public const int frameDelay = 50;
+        public int directionModifier;
 
         public const int snakeStartLength = 3;
         public const int startWallDistance = 1;
@@ -36,10 +41,9 @@ namespace ConsoleSnake
         public char blankChar = ' ';
         public char snakeheadChar = '0';
         public char snakebodyChar = 'o';
-        public char pointChar = 'P';
+        public char pointChar = 'X';
 
-        public string gameoverStringStart = "################################\n" + "# Game over! Your score was: ";
-        public string gameoverStringEnd = " #\n################################";
+        public string lossReason;
         #endregion
         public void Run()
         {
@@ -52,7 +56,10 @@ namespace ConsoleSnake
                 while (gameRunning)
                 {
                     Render();
-                    Move(Console.ReadKey().Key);
+
+                    Thread.Sleep(frameDelay + directionModifier);
+
+                    Move();
                 }
 
                 Gameover();
@@ -60,62 +67,85 @@ namespace ConsoleSnake
             Environment.Exit(0);
         }
 
-        void Move(ConsoleKey keyPressed)
+        void Move()
         {
             #region Translate Keypress
             if (gameRunning)
             {
-                if (keyPressed == ConsoleKey.Escape)
+                DateTime time = DateTime.Now;
+                while ((DateTime.Now - time).Milliseconds < frameDelay)
                 {
-                    gameRunning = false;
+                    if (Console.KeyAvailable)
+                    {
+                        ConsoleKey keyPressed = Console.ReadKey().Key;
+
+                        if (keyPressed == ConsoleKey.Escape)
+                        {
+                            lossReason = "Quit";
+                            gameRunning = false;
+                        }
+                        else if (keyPressed == ConsoleKey.UpArrow || keyPressed == ConsoleKey.W)
+                        {
+                            if (lastMovedDirection == "Down")
+                            {
+                                movementDirection = "Down";
+                            }
+                            else
+                            {
+                                movementDirection = "Up";
+                                lastMovedDirection = "Up";
+                            }
+                        }
+                        else if (keyPressed == ConsoleKey.DownArrow || keyPressed == ConsoleKey.S)
+                        {
+                            if (lastMovedDirection == "Up")
+                            {
+                                movementDirection = "Up";
+                            }
+                            else
+                            {
+                                movementDirection = "Down";
+                                lastMovedDirection = "Down";
+                            }
+                        }
+                        else if (keyPressed == ConsoleKey.LeftArrow || keyPressed == ConsoleKey.A)
+                        {
+                            if (lastMovedDirection == "Right")
+                            {
+                                movementDirection = "Right";
+                            }
+                            else
+                            {
+                                movementDirection = "Left";
+                                lastMovedDirection = "Left";
+                            }
+                        }
+                        else if (keyPressed == ConsoleKey.RightArrow || keyPressed == ConsoleKey.D)
+                        {
+                            if (lastMovedDirection == "Left")
+                            {
+                                movementDirection = "Left";
+                            }
+                            else
+                            {
+                                movementDirection = "Right";
+                                lastMovedDirection = "Right";
+                            }
+                        }
+
+                    }
                 }
-                else if (keyPressed == ConsoleKey.UpArrow || keyPressed == ConsoleKey.W)
+                switch (movementDirection)
                 {
-                    if (lastMovedDirection == "Down")
-                    {
-                        movementDirection = "Down";
-                    }
-                    else
-                    {
-                        movementDirection = "Up";
-                        lastMovedDirection = "Up";
-                    }
-                }
-                else if (keyPressed == ConsoleKey.DownArrow || keyPressed == ConsoleKey.S)
-                {
-                    if (lastMovedDirection == "Up")
-                    {
-                        movementDirection = "Up";
-                    }
-                    else
-                    {
-                        movementDirection = "Down";
-                        lastMovedDirection = "Down";
-                    }
-                }
-                else if (keyPressed == ConsoleKey.LeftArrow || keyPressed == ConsoleKey.A)
-                {
-                    if (lastMovedDirection == "Right")
-                    {
-                        movementDirection = "Right";
-                    }
-                    else
-                    {
-                        movementDirection = "Left";
-                        lastMovedDirection = "Left";
-                    }
-                }
-                else if (keyPressed == ConsoleKey.RightArrow || keyPressed == ConsoleKey.D)
-                {
-                    if (lastMovedDirection == "Left")
-                    {
-                        movementDirection = "Left";
-                    }
-                    else
-                    {
-                        movementDirection = "Right";
-                        lastMovedDirection = "Right";
-                    }
+                    case "Up":
+                    case "Down":
+                        directionModifier = 25;
+                        break;
+
+                    case "Left":
+                    case "Right":
+                        directionModifier = 0;
+                        break;
                 }
             }
             #endregion
@@ -123,148 +153,73 @@ namespace ConsoleSnake
             #region Check collision & Move Player
             if (gameRunning)
             {
-                if (movementDirection == "Up")
-                {
-                    if ((snakePositions[0].Y - 1) == pointPosition.Y && pointPosition.X == (snakePositions[0].X))
-                    {
-                        AddPoint();
-                    }
-                    else
-                    {
-                        if (snakePositions.GetLength(0)! > 1)
-                        {
-                            for (int i = snakePositions.GetLength(0) - 1; i > -1; i--)
-                            {
-                                if (i == 0)
-                                {
-                                    mapGrid[snakePositions[i].Y, snakePositions[i].X] = 0;
-                                    snakePositions[i].Y--;
-                                }
-                                else
-                                {
-                                    mapGrid[snakePositions[i].Y, snakePositions[i].X] = 0;
-                                    snakePositions[i].Y = snakePositions[i - 1].Y;
-                                    snakePositions[i].X = snakePositions[i - 1].X;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            mapGrid[snakePositions[0].Y, snakePositions[0].X] = 0;
-                            snakePositions[0].Y--;
-                        }
-                    }
-                }
-                else if (movementDirection == "Down")
-                {
-                    if ((snakePositions[0].Y + 1) == pointPosition.Y && pointPosition.X == (snakePositions[0].X))
-                    {
-                        AddPoint();
-                    }
-                    else
-                    {
-                        if (snakePositions.GetLength(0)! > 1)
-                        {
-                            for (int i = snakePositions.GetLength(0) - 1; i > -1; i--)
-                            {
-                                if (i == 0)
-                                {
-                                    mapGrid[snakePositions[i].Y, snakePositions[i].X] = 0;
-                                    snakePositions[i].Y++;
-                                }
-                                else
-                                {
-                                    mapGrid[snakePositions[i].Y, snakePositions[i].X] = 0;
-                                    snakePositions[i].Y = snakePositions[i - 1].Y;
-                                    snakePositions[i].X = snakePositions[i - 1].X;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            mapGrid[snakePositions[0].Y, snakePositions[0].X] = 0;
-                            snakePositions[0].Y++;
-                        }
-                    }
-                }
-                else if (movementDirection == "Left")
-                {
-                    if ((snakePositions[0].Y) == pointPosition.Y && pointPosition.X == (snakePositions[0].X - 1))
-                    {
-                        AddPoint();
-                    }
-                    else
-                    {
-                        if (snakePositions.GetLength(0)! > 1)
-                        {
-                            for (int i = snakePositions.GetLength(0) - 1; i > -1; i--)
-                            {
-                                if (i == 0)
-                                {
-                                    mapGrid[snakePositions[i].Y, snakePositions[i].X] = 0;
-                                    snakePositions[i].X--;
-                                }
-                                else
-                                {
-                                    mapGrid[snakePositions[i].Y, snakePositions[i].X] = 0;
-                                    snakePositions[i].Y = snakePositions[i - 1].Y;
-                                    snakePositions[i].X = snakePositions[i - 1].X;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            mapGrid[snakePositions[0].Y, snakePositions[0].X] = 0;
-                            snakePositions[0].X--;
-                        }
-                    }
-                }
-                else if (movementDirection == "Right")
-                {
-                    if ((snakePositions[0].Y) == pointPosition.Y && pointPosition.X == (snakePositions[0].X + 1))
-                    {
-                        AddPoint();
-                    }
-                    else
-                    {
-                        if (snakePositions.GetLength(0)! > 1)
-                        {
-                            for (int i = snakePositions.GetLength(0) - 1; i > -1; i--)
-                            {
-                                if (i == 0)
-                                {
-                                    mapGrid[snakePositions[i].Y, snakePositions[i].X] = 0;
-                                    snakePositions[i].X++;
-                                }
-                                else
-                                {
-                                    mapGrid[snakePositions[i].Y, snakePositions[i].X] = 0;
-                                    snakePositions[i].Y = snakePositions[i - 1].Y;
-                                    snakePositions[i].X = snakePositions[i - 1].X;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            mapGrid[snakePositions[0].Y, snakePositions[0].X] = 0;
-                            snakePositions[0].X++;
-                        }
-                    }
-                }
-                //Check if collided with wall or body;
+                // Set previous positions and remove old drawn positions
                 for (int i = 0; i < snakePositions.GetLength(0); i++)
                 {
-                    //Check if collided with wall
-                    if (snakePositions[0].Y == 0 || snakePositions[0].Y == mapHeight - 1 || snakePositions[0].X == 0 || snakePositions[0].X == mapWidth - 1)
-                    {
-                        gameRunning = false;
-                    }
+                    prevSnakePositions[i].X = snakePositions[i].X;
+                    prevSnakePositions[i].Y = snakePositions[i].Y;
 
-                    //Check if collided with body
+                    mapGrid[prevSnakePositions[i].Y, prevSnakePositions[i].X] = 0;
+                }
+
+                // Move Player
+                // Move Snake Head
+                switch (movementDirection)
+                {
+                    case "Up":
+                        snakePositions[0].Y -= 1;
+
+                        mapGrid[prevSnakePositions[0].Y, prevSnakePositions[0].X] = 2;
+                        break;
+
+                    case "Down":
+                        snakePositions[0].Y += 1;
+
+                        mapGrid[prevSnakePositions[0].Y, prevSnakePositions[0].X] = 2;
+                        break;
+
+                    case "Left":
+                        snakePositions[0].X -= 1;
+
+                        mapGrid[prevSnakePositions[0].Y, prevSnakePositions[0].X] = 2;
+                        break;
+
+                    case "Right":
+                        snakePositions[0].X += 1;
+
+                        mapGrid[prevSnakePositions[0].Y, prevSnakePositions[0].X] = 2;
+                        break;
+                }
+
+                // Move Snake Body
+                for (int i = 1; i < snakePositions.GetLength(0); i++)
+                {
+                    snakePositions[i].X = prevSnakePositions[i - 1].X;
+                    snakePositions[i].Y = prevSnakePositions[i - 1].Y;
+                }
+
+                //Check for Collision
+                //Check if collided with point
+                if (snakePositions[0].X == pointPosition.X && snakePositions[0].Y == pointPosition.Y)
+                {
+                    AddPoint();
+                }
+
+                //Check if collided with wall
+                if (snakePositions[0].Y == 0 || snakePositions[0].Y == mapHeight - 1 || snakePositions[0].X == 0 || snakePositions[0].X == mapWidth - 1)
+                {
+                    lossReason = "Collided with wall";
+                    gameRunning = false;
+                }
+
+                //Check if collided with body
+                for (int i = 0; i < snakePositions.GetLength(0); i++)
+                 {
                     if (snakePositions[0].Y == snakePositions[i].Y && snakePositions[0].X == snakePositions[i].X)
                     {
                         if (i != 0)
                         {
+                            lossReason = "Collided with body";
                             gameRunning = false;
                         }
                     }
@@ -273,41 +228,57 @@ namespace ConsoleSnake
             #endregion
         }
 
-        /* To do list:
-        Bugfix:
-        [ ] Fix teleportation bug
-        [ ] Fix Point disappearing
-        [ ] Fix border top and bottom being invisible
-        [ ] Fix snakehead becoming P
 
-        Features:
-        [ ] Make game run by ticks instead of only when moving
-         */
+        void ElongateSnake()
+        {
+            Vector2D[] oldPositions;
+            Vector2D[] oldPrevPositions;
+            oldPositions = new Vector2D[snakePositions.GetLength(0)];
+            oldPrevPositions = new Vector2D[snakePositions.GetLength(0)];
+
+            //Save current positions in oldPositions
+            for (int i = 0; i < snakePositions.GetLength(0); i++)
+            {
+                oldPositions[i] = new Vector2D();
+                oldPositions[i].X = snakePositions[i].X;
+                oldPositions[i].Y = snakePositions[i].Y;
+
+                oldPrevPositions[i] = new Vector2D();
+                oldPrevPositions[i].X = prevSnakePositions[i].X;
+                oldPrevPositions[i].Y = prevSnakePositions[i].Y;
+            }
+
+            //Overwrite snakePositions and prevSnakePositions vectorarrays with new vectorarrays 1 element bigger.
+            snakePositions = new Vector2D[oldPositions.GetLength(0) + 1];
+            prevSnakePositions = new Vector2D[oldPrevPositions.GetLength(0) + 1];
+
+            // Define Array elements as Vector2D
+            for (int i = 0; i < snakePositions.GetLength(0); i++)
+            {
+                snakePositions[i] = new Vector2D();
+                prevSnakePositions[i] = new Vector2D();
+            }
+
+            // Give new vectorarray old positions
+            for (int i = 0; i < oldPositions.GetLength(0); i++)
+            {
+                snakePositions[i].X = oldPositions[i].X;
+                snakePositions[i].Y = oldPositions[i].Y;
+
+                prevSnakePositions[i + 1].X = oldPrevPositions[i].X;
+                prevSnakePositions[i + 1].Y = oldPrevPositions[i].Y;
+            }
+            snakePositions[snakePositions.GetLength(0) - 1].X = prevSnakePositions[snakePositions.GetLength(0) - 1].X;
+            snakePositions[snakePositions.GetLength(0) - 1].Y = prevSnakePositions[snakePositions.GetLength(0) - 1].Y;
+        }
 
         void AddPoint()
         {
             score++;
 
-            Vector2D[] oldPositions;
-            oldPositions = new Vector2D[snakePositions.GetLength(0)];
+            mapGrid[pointPosition.Y, pointPosition.X] = 0;
 
-            //Save current positions in oldPositions
-            for (int i = 0; i < snakePositions.GetLength(0); i++)
-            {
-                oldPositions[i] = snakePositions[i];
-            }
-
-            //Overwrite snakePositions vectorarray with new vectorarray 1 element bigger.
-            snakePositions = new Vector2D[oldPositions.GetLength(0) + 1];
-
-            // Give new vectorarray old positions
-            for (int i = 0; i < oldPositions.GetLength(0); i++)
-            {
-                snakePositions[i + 1] = oldPositions[i];
-            }
-            snakePositions[0] = pointPosition;
-
-            mapGrid[pointPosition.Y, pointPosition.Y] = 2;
+            ElongateSnake();
 
             NewPoint();
         }
@@ -344,9 +315,7 @@ namespace ConsoleSnake
                 if (posCollision == 0)
                 {
                     newPositionGood = true;
-                    mapGrid[yCord, xCord] = 4;
                 }
-
             }
 
             pointPosition.Y = yCord;
@@ -422,7 +391,13 @@ namespace ConsoleSnake
             while (retryAnswer)
             {
                 Console.Clear();
-                Console.Write(gameoverStringStart + score + gameoverStringEnd + "\n");
+                if (lossReason == "Quit")
+                {
+                    Console.Write("G");
+                }
+                Console.WriteLine("Game over!");
+                Console.WriteLine("Cause of losing: " + lossReason);
+                Console.WriteLine("Your score was: " + score);
                 Console.WriteLine("Press ( R ) to restart or ( ESC ) to exit.");
 
                 ConsoleKey keyRead = Console.ReadKey().Key;
@@ -451,7 +426,7 @@ namespace ConsoleSnake
                     {
                         mapGrid[y, x] = 1;
                     }
-                    if (x == 0 || x == mapWidth - 1)
+                    else if (x == 0 || x == mapWidth - 1)
                     {
                         mapGrid[y, x] = 1;
                     }
@@ -464,9 +439,12 @@ namespace ConsoleSnake
 
             //Create array of snake positions and set their start position
             snakePositions = new Vector2D[snakeStartLength];
+            prevSnakePositions = new Vector2D[snakePositions.GetLength(0)];
             for (int i = 0; i < snakePositions.GetLength(0); i++)
             {
                 snakePositions[i] = new Vector2D();
+                prevSnakePositions[i] = new Vector2D();
+
                 snakePositions[i].Y = mapHeight / 2;
                 snakePositions[i].X = startWallDistance + snakeStartLength - i;
             }
