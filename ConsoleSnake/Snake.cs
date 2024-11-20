@@ -14,15 +14,15 @@ namespace ConsoleSnake
         public bool gameRunning = false;
 
         public int score;
-        public string movementDirection;
-        public string lastMovedDirection;
+        public string movementDirection = "none";
+        public string lastMovedDirection = "none";
 
-        public int[,] mapGrid;
+        public int[,] mapGrid = new int[0,0];
 
-        public Vector2D[] snakePositions;
-        public Vector2D[] prevSnakePositions;
+        public Vector2D[] snakePositions = new Vector2D[0];
+        public Vector2D[] prevSnakePositions = new Vector2D[0];
 
-        public Vector2D pointPosition;
+        public Vector2D pointPosition = new Vector2D();
         public const int pointWallDistanceMin = 2;
 
         public const int frameDelay = 50;
@@ -43,7 +43,7 @@ namespace ConsoleSnake
         public char snakebodyChar = 'o';
         public char pointChar = 'X';
 
-        public string lossReason;
+        public string lossReason = "None";
         #endregion
         public void Run()
         {
